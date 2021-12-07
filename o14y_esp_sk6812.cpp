@@ -70,6 +70,6 @@ esp_err_t o14y_esp_sk6812_clear(o14y_esp_sk6812_t context) {
     return ESP_OK;
 }
 esp_err_t o14y_esp_sk6812_set(o14y_esp_sk6812_t context, int g8r8b8) {
-    o14y::sk6812 *obj = UNPACK(context);
+    o14y::esp::sk6812 *obj = UNPACK(context);
     return obj->set(g8r8b8);
 }
