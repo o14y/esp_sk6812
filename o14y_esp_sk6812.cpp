@@ -1,9 +1,11 @@
 // (c) 2021 o14y
 #include <string.h>
-#include "driver/rmt.h"
-#include "esp_err.h"
-#include "esp_log.h"
-#include "o14y_esp_sk6812.h"
+#include <memory>
+#include <functional>
+#include <driver/rmt.h>
+#include <esp_err.h>
+#include <esp_log.h>
+#include <o14y_esp_sk6812.h>
 #define UNPACK(p) ((o14y::esp::sk6812*)p)
 #define ENSURE(ec) { esp_err_t e = (ec); if (e != ESP_OK){ return e; }}
 const char* app = "o14y_esp_sk6812";
@@ -21,30 +23,34 @@ namespace o14y { namespace esp {
             ENSURE(rmt_driver_install(config_.channel, 0, 0));
             return ESP_OK;
         }
-        esp_err_t set(int g8r8b8) {
-            rmt_item32_t data[25];
-            for ( rmt_item32_t* c=data; c<data+24; c++) {
-                if (g8r8b8 & 0x800000) {
-                    // 1
-                    c->duration0 = 6;
-                    c->level0 = 1;
-                    c->duration1 = 6;
-                    c->level1 = 0;
-                } else {
-                    // 0
-                    c->duration0 = 3;
-                    c->level0 = 1;
-                    c->duration1 = 9;
-                    c->level1 = 0;
+        esp_err_t set(int* g8r8b8, int count) {
+            int nitems = count*24+1;
+            std::shared_ptr<rmt_item32_t> items(new rmt_item32_t[nitems]
+                , std::bind([](auto p){delete[] p;}, std::placeholders::_1));
+            rmt_item32_t* itr=items.get();
+            for ( int c=0; c<count; c++ ) {
+                int color = g8r8b8[c];
+                for ( int i=0; i<24; i++ ) {
+                    itr->level0 = 1;
+                    itr->level1 = 0;
+                    if (color & 0x800000) {
+                        // 1
+                        itr->duration0 = 6;
+                        itr->duration1 = 6;
+                    } else {
+                        // 0
+                        itr->duration0 = 3;
+                        itr->duration1 = 9;
+                    }
+                    color = color << 1;
+                    itr++;
                 }
-                g8r8b8 = g8r8b8 << 1;
             }
-            // reset
-            data[25].duration0 = 80;
-            data[25].level0 = 0;
-            data[25].duration1 = 0;
-            data[25].level1 = 0;
-            ENSURE(rmt_write_items(config_.channel, data, sizeof(data)/sizeof(data[0]), false));
+            itr->level0 = 0;
+            itr->level1 = 0;
+            itr->duration0 = 80;
+            itr->duration1 = 0;
+            ENSURE(rmt_write_items(config_.channel, items.get(), nitems, true));
             return ESP_OK;
         }
         ~sk6812(){
@@ -57,7 +63,7 @@ namespace o14y { namespace esp {
         rmt_config_t config_;
     };
 } }
-esp_err_t o14y_esp_sk6812_init(o14y_esp_sk6812_t* context, gpio_num_t gpio_num, rmt_channel_t channel) {
+esp_err_t o14y_esp_sk6812_make(o14y_esp_sk6812_t* context, gpio_num_t gpio_num, rmt_channel_t channel) {
     o14y::esp::sk6812 *obj = new o14y::esp::sk6812();
     esp_err_t ec = obj->init(gpio_num, channel);
     if (ec == ESP_OK){
@@ -69,7 +75,11 @@ esp_err_t o14y_esp_sk6812_clear(o14y_esp_sk6812_t context) {
     delete UNPACK(context);
     return ESP_OK;
 }
-esp_err_t o14y_esp_sk6812_set(o14y_esp_sk6812_t context, int g8r8b8) {
+esp_err_t o14y_esp_sk6812_set(o14y_esp_sk6812_t context, int* g8r8b8, int count) {
     o14y::esp::sk6812 *obj = UNPACK(context);
-    return obj->set(g8r8b8);
+    return obj->set(g8r8b8, count);
+}
+esp_err_t o14y_esp_sk6812_setone(o14y_esp_sk6812_t context, int g8r8b8) {
+    o14y::esp::sk6812 *obj = UNPACK(context);
+    return obj->set(&g8r8b8, 1);
 }
