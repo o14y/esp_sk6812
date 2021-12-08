@@ -18,7 +18,7 @@ namespace o14y { namespace esp {
             rmt_config_t config = RMT_DEFAULT_CONFIG_TX(gpio_num, channel);
             memmove(&config_, &config, sizeof(config));
             config_.channel = channel;
-            config_.clk_div = 8;  // for 80MHz. 24steps = 0.3usec for 1tick.
+            config_.clk_div = 8;  // for 80MHz. 8steps = 0.1usec for 1tick.
             ENSURE(rmt_config(&config_));
             ENSURE(rmt_driver_install(config_.channel, 0, 0));
             return ESP_OK;
@@ -46,6 +46,7 @@ namespace o14y { namespace esp {
                     itr++;
                 }
             }
+            // reset
             itr->level0 = 0;
             itr->level1 = 0;
             itr->duration0 = 80;
