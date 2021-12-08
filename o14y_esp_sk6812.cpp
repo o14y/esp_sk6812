@@ -55,7 +55,7 @@ namespace o14y { namespace esp {
             return ESP_OK;
         }
         ~sk6812(){
-            esp_err_t ec = rmt_driver_uninstall(config_.channel);
+            auto ec = rmt_driver_uninstall(config_.channel);
             if (ec) {
                 ESP_LOGE(app, "Failed to uninstall rmt driver %d\n", ec);
             }
@@ -65,8 +65,8 @@ namespace o14y { namespace esp {
     };
 } }
 esp_err_t o14y_esp_sk6812_make(o14y_esp_sk6812_t* context, gpio_num_t gpio_num, rmt_channel_t channel) {
-    o14y::esp::sk6812 *obj = new o14y::esp::sk6812();
-    esp_err_t ec = obj->init(gpio_num, channel);
+    auto obj = new o14y::esp::sk6812();
+    auto ec = obj->init(gpio_num, channel);
     if (ec == ESP_OK){
         *context = obj;
     }
@@ -77,10 +77,10 @@ esp_err_t o14y_esp_sk6812_clear(o14y_esp_sk6812_t context) {
     return ESP_OK;
 }
 esp_err_t o14y_esp_sk6812_set(o14y_esp_sk6812_t context, int* g8r8b8, int count) {
-    o14y::esp::sk6812 *obj = UNPACK(context);
+    auto obj = UNPACK(context);
     return obj->set(g8r8b8, count);
 }
 esp_err_t o14y_esp_sk6812_setone(o14y_esp_sk6812_t context, int g8r8b8) {
-    o14y::esp::sk6812 *obj = UNPACK(context);
+    auto obj = UNPACK(context);
     return obj->set(&g8r8b8, 1);
 }
